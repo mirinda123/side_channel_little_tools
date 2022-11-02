@@ -127,12 +127,36 @@ if __name__ == '__main__':
 # 下面是进行模板攻击
 
 part = 10
-# 首先对曲线进行分类
+# 首先对曲线进行分类，0-255有256类
 num_of_class = 256
 
+# PoI的下标
+PoIs = [3134, 4140, 5160, 6170, 7190, 8190, 9220, 10220,11240, 12270,13300 ,14280,15310,16330,17330,18350,19360,20430,21390,23400,25430,27450 ,29470]
+#PoI的个数
+num_of_PoIs = len(PoIs)
+print(newarray)
 # 0 - 255
 # 用来给曲线分类
 category = [[] for _ in range(num_of_class)]
+
+# 对于每个类，存放每个PoI处的均值
+meanMatrix = np.zeros((num_of_class, numPOIs))
+
+# 初始化均值向量
+m = []
+for i in range(num_of_class):
+    m[i] = np.zeros(num_of_PoIs)
+old_mean = []
+for i in range(num_of_class):
+    old_mean[i] = np.zeros(num_of_PoIs)
+# 初始化协方差矩阵
+C = []
+for i in range(num_of_class):
+    c[i] = np.zeros((num_of_PoIs, num_of_PoIs))
+#初始化count ，用来记录每一个label下曲线的数目
+count = []
+for i in range(num_of_class):
+    count[i] = 0
 for i in range(part):
 
     # 读取一个part的输入数据
@@ -141,12 +165,45 @@ for i in range(part):
     # 一个part的曲线
     traces = np.load("F:/tracexinzeng32sh8/arrPart{0}.npy".format(i))
 
+    # 处理曲线，只选取这些PoI
+    traces = traces[:, PoIs]
 
-    # 遍历这个part中所有的label
+
+    # 遍历这个part中所有的曲线
+    # online 计算 cov
     for index, label in enumerate(input_data):
-        category[label].append(traces[index].tolist())
+        count[label] += 1
+        trace = traces[index]
 
-print(category)
-print(category[1])
-category = np.array(category)
-print(category.shape)
+        # 暂存一下旧的均值
+        old_mean[label] = m[label]
+
+        # 在线计算均值和方差 Welford's online algorithm
+        # m是均值
+
+        # 算出新的均值
+        m[label] = m[label] + (trace - m[label]) / (count[label])
+        for i in range(num_of_PoIs):
+            for j in range(num_of_PoIs):
+                x = trace[i]
+                y = trace[j]
+
+                dx = x - old_mean[label][i]
+
+                # new meanx
+                #meanx += dx / count[label]
+
+                # new meany
+                # meany += (y - meany) / count[label]
+                # C =( C * (n-1) +  dx * (y - meany) ) / n
+                C[label][i][j] += dx * (y - m[label][j])
+
+    #计算均值
+
+# 所有part遍历完成之后，最终求出协方差
+for l in range(num_of_class):
+    for i in range(num_of_PoIs):
+        for j in range(num_of_PoIs):
+            C[l][i][j] = C[l][i][j] / count[l]
+
+# 明天跑一下新的求方差算法试试
