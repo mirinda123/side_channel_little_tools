@@ -27,17 +27,19 @@ def online_cov(X_list,Y_list):
         #C =( C * (n-1) +  dx * (y - meany) ) / n
         C += dx * (y - meany)
 
-    print(C / (n))
-X = np.random.rand(10000)
-Y = np.random.rand(10000)
+    print(C / (n-1))
+X = np.array([16.60206915,23.43821528,-19.59288308,-20.56947539])[0:2]
+Y = np.array([20.50843837,6.83614612,-7.87377544,-5.92059084])[0:2]
+#X = np.random.rand(10000)
+#Y = np.random.rand(10000)
 #X = [1,2,4,6,8,5,6][:6]
 #Y = [3,6,2,6,9,7,8][:6]
-#online_cov(X, Y)
-better_var(X)
+online_cov(X, Y)
+#better_var(X)
 print("numpy_result")
+print(np.cov(X, Y))
 
-#print(np.cov(X, Y)[0][1])
-print(np.var(X))
+#print(np.var(X))
 
 
 # 用numpy测一下数据

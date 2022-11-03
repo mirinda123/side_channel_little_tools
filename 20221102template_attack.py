@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
 # 下面是进行模板攻击
 
-part = 10
+part = 3
 # 首先对曲线进行分类，0-255有256类
 num_of_class = 256
 
@@ -169,17 +169,19 @@ for i in range(num_of_class):
 input_data= []
 for i in range(part):
     # 收集一下所有的输入数据
-    input_data +=  np.loadtxt(r"F:/tracexinzeng32sh8/aaadata{0}.txt".format(i), delimiter=',', dtype="int").tolist()
+    input_data +=  np.loadtxt(r"D:/tracexinzeng32sh8/aaadata{0}.txt".format(i), delimiter=',', dtype="int").tolist()
+
 
 # 去重一下
 input_data_unique =  np.unique(input_data)
+print("unique_data",input_data_unique)
 for i in range(part):
 
     # 读取一个part的输入数据
-    input_data = np.loadtxt("F:/tracexinzeng32sh8/aaadata{0}.txt".format(i), delimiter=' ', dtype="int")
+    input_data = np.loadtxt("D:/tracexinzeng32sh8/aaadata{0}.txt".format(i), delimiter=' ', dtype="int")
 
     # 一个part的曲线
-    traces = np.load("F:/tracexinzeng32sh8/arrPart{0}.npy".format(i))
+    traces = np.load("D:/tracexinzeng32sh8/arrPart{0}.npy".format(i))
 
     # 处理曲线，只选取这些PoI
     traces = traces[:, PoIs]
@@ -203,10 +205,7 @@ for i in range(part):
 
         # 算出新的均值
         meanMatrix[label] = meanMatrix[label] + (trace - meanMatrix[label]) / (count[label])
-        if label == 1:
-            print("attention")
-            print("trace[count]")
-            print(trace)
+
         #在线计算协方差
         for i in range(num_of_PoIs):
             for j in range(num_of_PoIs):
@@ -222,22 +221,29 @@ for i in range(part):
                 # meany += (y - meany) / count[label]
                 # C =( C * (n-1) +  dx * (y - meany) ) / n
                 covMatrix[label][i][j] += dx * (y - meanMatrix[label][j])
-
+        # if label == 1:
+        #     print("attention")
+        #     print("trace[count]")
+        #     print(trace)
+        #     print("meanMatrix")
+        #     print(meanMatrix[label])
+        #     mat = covMatrix[label] / (count[label]-1)
+        #     print("xiefangcha:")
+        #     print(mat[0][1])
+        #     print("#")
     #计算均值
 
 # 所有part遍历完成之后，最终求出协方差
 for label in input_data_unique:
-    if label == 1:
-        print("label",label)
-        print("meanMatrix")
-        print(meanMatrix[label])
+    #if label == 1:
+        #print("label",label)
+        #print("meanMatrix")
+        #print(meanMatrix[label])
     for i in range(num_of_PoIs):
         for j in range(num_of_PoIs):
-            covMatrix[label][i][j] = covMatrix[label][i][j] / count[label]
+            covMatrix[label][i][j] = covMatrix[label][i][j] / (count[label]-1)
 
-    if label == 1:
-        print("covMatrix")
-        print(covMatrix[label])
+
 
 
 # 下面是开始攻击
@@ -249,32 +255,41 @@ P_k = np.zeros(256)
 # 攻击曲线使用多少个part
 attack_part = 2
 # 从第几个part开始
-attack_part_start_index = 50
+attack_part_start_index = 0
 print("开始攻击")
 for i in trange(attack_part):
 
-
     # 一个part的曲线
-    traces = np.load("F:/tracexinzeng32sh8/arrPart{0}.npy".format(i + attack_part_start_index))
+    traces = np.load("D:/tracexinzeng32sh8/arrPart{0}.npy".format(i + attack_part_start_index))
 
     for j in range(len(traces)):
         # 取出PoI
         a = [traces[j][PoIs[i]] for i in range(len(PoIs))]
-
         # Test each key
         for label in input_data_unique:
-
+            if np.isnan(covMatrix[label][0][0] ):
+                # print("label为"+ str(label)+ "的模板不存在")
+                continue
             # Find p_{k,j}
-            print(meanMatrix[label].shape)
-            print(covMatrix[label].shape)
-            rv = multivariate_normal(meanMatrix[label], covMatrix[label])
+
+            # print(meanMatrix[label].shape)
+            # print(covMatrix[label].shape)
+            # print("!")
+            # print(label)
+            # print(covMatrix[label])
+            # print(covMatrix[label][0][2])
+            # print(covMatrix[label][2][0])
+            rv = multivariate_normal(meanMatrix[label], covMatrix[label],  allow_singular=True)
             p_kj = rv.pdf(a)
 
             # Add it to running total
-            P_k[k] += np.log(p_kj)
+            # 这个输入有点问题，是1-254，没有0没有255
+            P_k[label] += np.log(p_kj)
 
         # Print our top 5 results so far
         # Best match on the right
 
-
+        # 去掉0，去掉255
+        P_k = P_k[1:255]
         print(P_k.argsort()[-5:])
+        # print(P_k)
