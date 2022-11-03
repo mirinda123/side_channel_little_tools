@@ -203,7 +203,10 @@ for i in range(part):
 
         # 算出新的均值
         meanMatrix[label] = meanMatrix[label] + (trace - meanMatrix[label]) / (count[label])
-
+        if label == 1:
+            print("attention")
+            print("trace[count]")
+            print(trace)
         #在线计算协方差
         for i in range(num_of_PoIs):
             for j in range(num_of_PoIs):
