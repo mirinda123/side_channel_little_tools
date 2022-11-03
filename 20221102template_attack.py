@@ -33,7 +33,7 @@ for alun in range(0, 1000):
 
 # 下面是测SNR
 
-'''
+
 import numpy as np
 from matplotlib import pyplot as plt
 from tqdm import tqdm, trange
@@ -71,7 +71,9 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n,loadData):
             # m是均值
             # v是方差
             m[label] = m[label] + (trace[count] - m[label]) / (count_temp[label] + 1)
-
+            if label == 1:
+                print("trace:",trace[count])
+                print("mean:",m[label])
             # sigma的平方
             v[label] = v[label] + ((trace[count] - old_mean) * (trace[count] - m[label]) - v[label]) / (
                     count_temp[label] + 1)
@@ -81,8 +83,12 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n,loadData):
     for i_ in loadData:
         # signal_trace 存所有label的均值曲线
         signal.append(m[i_])
+        #print("m[i_]")
+        #print(m[i_])
     for j_ in loadData:
         noise.append(v[j_])
+        #print("v[j_]")
+        #print(v[j_])
     signal_var = np.var(signal, axis=0)
 
     # 这里好像不太一样/
@@ -101,7 +107,7 @@ def snr_function(n,url_trace,trace_name,url_data,data_name):
     loadData = (np.unique(list))
     # 得到的loadData是*所有块中*去重后的输入数据
     result_data = prepare_data(url_trace, trace_name, url_data, data_name, n,loadData)
-    np.save(r"F:/tracexinzeng32sh8/snr_data.npy",result_data)
+    np.save(r"F:/tracexinzeng32sh8/snr_data_test.npy",result_data)
     ax.plot(result_data)
     plt.show()
 
@@ -114,15 +120,17 @@ if __name__ == '__main__':
 
     data_name = "aaadata"
     trace_name = "arrPart"
-    n = 1000
+    n = 2
     # 运行此函数
     snr_function(n,url_trace,trace_name,url_data,data_name)
 
-'''
+
 # 确定的几个POI
 # x = 3134 4140 5160 6170 7190 8190 9220 10220 11240 12270 13300 14280  15310 16330 17330 18350 19360 20430 21390 23400 25430 27450  29470
 
 
+
+'''
 
 # 下面是进行模板攻击
 
@@ -207,3 +215,5 @@ for l in range(num_of_class):
             C[l][i][j] = C[l][i][j] / count[l]
 
 # 明天跑一下新的求方差算法试试
+
+'''

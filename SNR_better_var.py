@@ -4,9 +4,9 @@ from tqdm import tqdm, trange
 
 # 这个文件也是测SNR，但是使用的方差算法貌似可以防止数值错误，试一试
 def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
-    m = []
-    v = []
-    M2 = []
+    m = [None] * 300
+    v = [None] * 300
+    M2 = [None] * 300
     # trace = np.load(url_trace + r"arrPart0.npy")
     trace = np.load(url_trace + r"arrPart0.npy")
     # count_temp = np.zeros(300, dtype=np.int32)
@@ -16,6 +16,9 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
     count_temp = np.zeros(300, dtype=np.int32)
 
     # 初始化m和v
+    # i 是 1- 254
+    # 我们需要0-255
+
     for i in loadData:
         m[i] = np.zeros(trace.shape[1])
         v[i] = np.zeros(trace.shape[1])
@@ -37,7 +40,8 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
 
             delta = trace[count] - m[label]
 
-            m[label] += delta[label] / count_temp[label]
+            m[label] += (delta / count_temp[label])
+
             # 遍历每一条数据，在线计算均值和方差 Welford's online algorithm
             # m是均值
             # v是方差
@@ -51,8 +55,12 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
     for i_ in loadData:
         # signal_trace 存所有label的均值曲线
         signal.append(m[i_])
+        #print("m[i_]")
+        #print(m[i_])
     for j_ in loadData:
         noise.append(v[j_])
+        #print("v[j_]")
+        #print(v[j_])
     signal_var = np.var(signal, axis=0)
 
     # 这里好像不太一样/
@@ -72,7 +80,7 @@ def snr_function(n, url_trace, trace_name, url_data, data_name):
     loadData = (np.unique(list))
     # 得到的loadData是*所有块中*去重后的输入数据
     result_data = prepare_data(url_trace, trace_name, url_data, data_name, n, loadData)
-    np.save(r"F:/tracexinzeng32sh8/snr_data.npy", result_data)
+    np.save(r"F:/tracexinzeng32sh8/snr_data_better_var.npy", result_data)
     ax.plot(result_data)
     plt.show()
 
