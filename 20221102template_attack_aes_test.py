@@ -136,9 +136,7 @@ if __name__ == '__main__':
 
 # 下面是进行模板攻击
 # 选择多少个part进行攻击
-part = 200
-
-# 首先是哪一个part
+part = 1
 profiling_part_start_index = 0
 # 首先对曲线进行分类，0-255有256类
 num_of_class = 256
@@ -147,47 +145,53 @@ num_of_class = 256
 # 这个PoI对应的是 F:\tracexinzeng32sh8
 #PoIs = [3134, 4140, 5160, 6170, 7190, 8190, 9220, 10220,11240, 12270,13300 ,14280,15310,16330,17330,18350,19360,20430,21390,23400,25430,27450 ,29470]
 # 这个PoI对应的是 F:\weixinzeng32sh8
-PoIs = [1004, 1200, 1320, 1443, 1560, 1675, 1799, 1920]
-
+# PoIs = [1004, 1200, 1320, 1443, 1560, 1675, 1799, 1920]
+# 这个PoI对应的是 AES D:\ChipWhisperer5_52\cw\home\portable\chipwhisperer\jupyter\courses\sca101\traces  lab3_3_yihuohoudezhiPart0.npy
+PoIs = [93, 628, 1313, 2166]
 #PoI的个数
 num_of_PoIs = len(PoIs)
 
 # 0 - 255
+# 用来给曲线分类
+category = [None] * 256
+
 # 对于每个类，存放每个PoI处的均值
 # 初始化均值向量
 meanMatrix = [None] * 256
+for i in range(num_of_class):
+    meanMatrix[i] = np.zeros(num_of_PoIs)
 old_mean = [None] * 256
+for i in range(num_of_class):
+    old_mean[i] = np.zeros(num_of_PoIs)
 # 初始化协方差矩阵
 covMatrix = [None] * 256
+for i in range(num_of_class):
+    covMatrix[i] = np.zeros((num_of_PoIs, num_of_PoIs))
 #初始化count ，用来记录每一个label下曲线的数目
 count = [None] * 256
 for i in range(num_of_class):
-    meanMatrix[i] = np.zeros(num_of_PoIs)
-for i in range(num_of_class):
-    old_mean[i] = np.zeros(num_of_PoIs)
-for i in range(num_of_class):
-    covMatrix[i] = np.zeros((num_of_PoIs, num_of_PoIs))
-for i in range(num_of_class):
     count[i] = 0
-
 
 input_data= []
 for i in range(part):
     # 收集一下所有的输入数据
-    input_data +=  np.loadtxt(r"F:/weixinzeng32sh8/aaadata{0}.txt".format(i), delimiter=',', dtype="int").tolist()
+    input_data +=  np.load(r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/lab3_3_yihuohoudezhiPart0.npy").tolist()
 
 
-# 对所有输入数据去重一下
+# 去重一下
 input_data_unique =  np.unique(input_data)
-
+#print("unique_data",input_data_unique)
 print("开始建模")
 for i in trange(part):
+
     # 读取一个part的输入数据
-    input_data = np.loadtxt("F:/weixinzeng32sh8/aaadata{0}.txt".format(i + profiling_part_start_index), delimiter=' ', dtype="int")
-    # 这个input_data没有问题
+    input_data = np.load(r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/lab3_3_yihuohoudezhiPart{0}.npy".format(i + profiling_part_start_index))
+
+    #总共2500条
+    input_data = input_data[0:2400]
     # 一个part的曲线
-    traces = np.load("F:/weixinzeng32sh8/arrPart{0}.npy".format(i + profiling_part_start_index))
-    assert len(input_data) == len(traces)
+    traces = np.load(r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/lab3_3_traces{0}.npy".format(i + profiling_part_start_index))
+
     # 处理曲线，只选取这些PoI
     traces = traces[:, PoIs]
 
@@ -226,27 +230,39 @@ for i in trange(part):
                 # meany += (y - meany) / count[label]
                 # C =( C * (n-1) +  dx * (y - meany) ) / n
                 covMatrix[label][i][j] += dx * (y - meanMatrix[label][j])
-
+        # if label == 1:
+        #     print("attention")
+        #     print("trace[count]")
+        #     print(trace)
+        #     print("meanMatrix")
+        #     print(meanMatrix[label])
+        #     mat = covMatrix[label] / (count[label]-1)
+        #     print("xiefangcha:")
+        #     print(mat[0][1])
+        #     print("#")
     #计算均值
 
 # 所有part遍历完成之后，最终求出协方差
 for label in input_data_unique:
+    #if label == 1:
+        #print("label",label)
+        #print("meanMatrix")
+        #print(meanMatrix[label])
     for i in range(num_of_PoIs):
         for j in range(num_of_PoIs):
             covMatrix[label][i][j] = covMatrix[label][i][j] / (count[label]-1)
 
-# 求协方差这些关键的算法验证了，没有问题
 
 
 ########################################
 # 下面是开始攻击，对多个曲线进行攻击
+'''
 
 # 256种猜测的分数
 P_k = np.zeros(256)
 
-# 要对哪一个label进行攻击，我们需要pick出这些曲线。因为源文件中的trace有不同的label
+# 要对哪一个label进行攻击
 target_label = 60
-print("攻击的应该是" + str(target_label))
 # 攻击曲线使用多少个part
 attack_part = 50
 # 从第几个part开始
@@ -260,8 +276,7 @@ for i in trange(attack_part):
     # 一个part的曲线
     traces = np.load("F:/weixinzeng32sh8/arrPart{0}.npy".format(i + attack_part_start_index))
     input_data = np.loadtxt(r"F:/weixinzeng32sh8/aaadata{0}.txt".format(i + attack_part_start_index), delimiter=',', dtype="int").tolist()
-
-    assert  len(traces) == len(input_data)
+    #input_data =  np.load("F:/tracexinzeng32sh8/aaadata{0}.txt".format(i + attack_part_start_index))
 
     # 遍历每一条曲线
     for j in range(len(traces)):
@@ -269,7 +284,6 @@ for i in trange(attack_part):
         # 如果输入的数据不是target，就跳过
         if input_data[j] != target_label:
             continue
-        # 如果是，则进行下面的步骤
         count_of_used_traces +=1
 
         # 取出PoI
@@ -277,44 +291,56 @@ for i in trange(attack_part):
         # Test each key
 
         for label in input_data_unique:
-
-            # 协方差矩阵为nan，说明没有这个模板
             if np.isnan(covMatrix[label][0][0] ):
-                print("label为"+ str(label)+ "的模板不存在")
+                # print("label为"+ str(label)+ "的模板不存在")
                 continue
+            # Find p_{k,j}
+
+            # print(meanMatrix[label].shape)
+            # print(covMatrix[label].shape)
+            # print("!")
+            # print(label)
+            # print(covMatrix[label])
+            # print(covMatrix[label][0][2])
+            # print(covMatrix[label][2][0])
             rv = multivariate_normal(meanMatrix[label], covMatrix[label],  allow_singular=True)
             p_kj = rv.pdf(a)
 
+            # Add it to running total
             # 这个输入有点问题，是1-254，没有0没有255
             P_k[label] += np.log(p_kj)
+
+
+        # Print our top 5 results so far
+        # Best match on the right
 
         # 去掉0，去掉255
         # 下标0-253 对应的key是1-254
         #print(P_k[1:255].argsort()[-5:])
         # print(P_k)
-
-# 注意最右边的是排名第一的密钥
 print(P_k[1:255].argsort()[-10:])
 print("count_of_used_traces", count_of_used_traces)
 print(P_k)
 
 
-
+'''
 #############################################
+
+
 
 # 下面是对一条曲线进行攻击
 # 256种猜测的分数
 
-'''
+
 P_k = np.zeros(256)
 
 
 print("开始攻击，对一条曲线")
-target_part = 21
+target_part = 0
 # 一个块中选择第几条
-dijitiao = 0
+dijitiao = 2490
 # 一个part的曲线
-traces = np.load("F:/tracexinzeng32sh8/arrPart{0}.npy".format(target_part))
+traces = np.load(r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/lab3_3_traces{0}.npy".format(target_part))
 
 
 # 取出PoI
@@ -334,8 +360,7 @@ for label in input_data_unique:
 # 去掉0，去掉255
 # 下标0-253 对应的key是1-254
 # 打印一下前10个
-print(P_k[1:255].argsort()[-10:])
+print(P_k.argsort()[-10:])
 # print(P_k)
 print(P_k)
 
-'''
