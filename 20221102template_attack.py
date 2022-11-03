@@ -1,5 +1,5 @@
 import numpy as np
-
+from scipy.stats import multivariate_normal
 # 下面的代码用来生成数据
 # 生成数据
 import re
@@ -29,7 +29,7 @@ for alun in range(0, 1000):
     fdata.close()
 
 '''
-
+'''
 
 # 下面是测SNR
 
@@ -129,8 +129,9 @@ if __name__ == '__main__':
 # x = 3134 4140 5160 6170 7190 8190 9220 10220 11240 12270 13300 14280  15310 16330 17330 18350 19360 20430 21390 23400 25430 27450  29470
 
 
-
 '''
+
+
 
 # 下面是进行模板攻击
 
@@ -145,26 +146,34 @@ num_of_PoIs = len(PoIs)
 print(newarray)
 # 0 - 255
 # 用来给曲线分类
-category = [[] for _ in range(num_of_class)]
+category = [None] * 256
 
 # 对于每个类，存放每个PoI处的均值
 meanMatrix = np.zeros((num_of_class, numPOIs))
 
 # 初始化均值向量
-m = []
+m = [None] * 256
 for i in range(num_of_class):
     m[i] = np.zeros(num_of_PoIs)
-old_mean = []
+old_mean = [None] * 256
 for i in range(num_of_class):
     old_mean[i] = np.zeros(num_of_PoIs)
 # 初始化协方差矩阵
-C = []
+covMatrix = [None] * 256
 for i in range(num_of_class):
-    c[i] = np.zeros((num_of_PoIs, num_of_PoIs))
+    covMatrix[i] = np.zeros((num_of_PoIs, num_of_PoIs))
 #初始化count ，用来记录每一个label下曲线的数目
-count = []
+count = [None] * 256
 for i in range(num_of_class):
     count[i] = 0
+
+input_data= []
+for i in range(part):
+    # 收集一下所有的输入数据
+    input_data +=  np.loadtxt(r"F:/tracexinzeng32sh8/aaadata{0}.txt".format(i), delimiter=',', dtype="int").tolist()
+
+# 去重一下
+input_data_unique =  np.unique(input_data)
 for i in range(part):
 
     # 读取一个part的输入数据
@@ -180,7 +189,11 @@ for i in range(part):
     # 遍历这个part中所有的曲线
     # online 计算 cov
     for index, label in enumerate(input_data):
+
+        #label对应的数量+1
         count[label] += 1
+
+        # 取出这条曲线
         trace = traces[index]
 
         # 暂存一下旧的均值
@@ -191,6 +204,8 @@ for i in range(part):
 
         # 算出新的均值
         m[label] = m[label] + (trace - m[label]) / (count[label])
+
+        #在线计算协方差
         for i in range(num_of_PoIs):
             for j in range(num_of_PoIs):
                 x = trace[i]
@@ -204,16 +219,49 @@ for i in range(part):
                 # new meany
                 # meany += (y - meany) / count[label]
                 # C =( C * (n-1) +  dx * (y - meany) ) / n
-                C[label][i][j] += dx * (y - m[label][j])
+                covMatrix[label][i][j] += dx * (y - m[label][j])
 
     #计算均值
 
 # 所有part遍历完成之后，最终求出协方差
-for l in range(num_of_class):
+for label in input_data_unique:
     for i in range(num_of_PoIs):
         for j in range(num_of_PoIs):
-            C[l][i][j] = C[l][i][j] / count[l]
+            covMatrix[label][i][j] = C[label][i][j] / count[l]
 
-# 明天跑一下新的求方差算法试试
 
-'''
+# 下面是开始攻击
+attack_traces = np.load()
+
+# 256种猜测的分数
+P_k = np.zeros(256)
+
+# 攻击曲线使用多少个part
+attack_part = 2
+# 从第几个part开始
+attack_part_start_index = 50
+for i in range(attack_part):
+
+
+    # 一个part的曲线
+    traces = np.load("F:/tracexinzeng32sh8/arrAttackPart{0}.npy".format(i + attack_part_start_index))
+
+    for j in range(len(traces)):
+        # 取出PoI
+        a = [traces[j][PoIs[i]] for i in range(len(PoIs))]
+
+        # Test each key
+        for label in input_data_unique:
+
+            # Find p_{k,j}
+            rv = multivariate_normal(meanMatrix[label], covMatrix[label])
+            p_kj = rv.pdf(a)
+
+            # Add it to running total
+            P_k[k] += np.log(p_kj)
+
+        # Print our top 5 results so far
+        # Best match on the right
+
+
+        print(P_k.argsort()[-5:])
