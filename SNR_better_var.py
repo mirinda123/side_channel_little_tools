@@ -55,8 +55,10 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
     for i_ in loadData:
         # signal_trace 存所有label的均值曲线
         signal.append(m[i_])
-        #print("m[i_]")
-        #print(m[i_])
+        if i_ == 1:
+            print("label", i_)
+            print("meanMatrix")
+            print(m[i_][29470])
     for j_ in loadData:
         noise.append(v[j_])
         #print("v[j_]")
@@ -93,6 +95,6 @@ if __name__ == '__main__':
 
     data_name = "aaadata"
     trace_name = "arrPart"
-    n = 1000
+    n = 10
     # 运行此函数
     snr_function(n, url_trace, trace_name, url_data, data_name)

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import multivariate_normal
+from tqdm import trange
 # 下面的代码用来生成数据
 # 生成数据
 import re
@@ -143,18 +144,16 @@ num_of_class = 256
 PoIs = [3134, 4140, 5160, 6170, 7190, 8190, 9220, 10220,11240, 12270,13300 ,14280,15310,16330,17330,18350,19360,20430,21390,23400,25430,27450 ,29470]
 #PoI的个数
 num_of_PoIs = len(PoIs)
-print(newarray)
+
 # 0 - 255
 # 用来给曲线分类
 category = [None] * 256
 
 # 对于每个类，存放每个PoI处的均值
-meanMatrix = np.zeros((num_of_class, numPOIs))
-
 # 初始化均值向量
-m = [None] * 256
+meanMatrix = [None] * 256
 for i in range(num_of_class):
-    m[i] = np.zeros(num_of_PoIs)
+    meanMatrix[i] = np.zeros(num_of_PoIs)
 old_mean = [None] * 256
 for i in range(num_of_class):
     old_mean[i] = np.zeros(num_of_PoIs)
@@ -197,13 +196,13 @@ for i in range(part):
         trace = traces[index]
 
         # 暂存一下旧的均值
-        old_mean[label] = m[label]
+        old_mean[label] = meanMatrix[label]
 
         # 在线计算均值和方差 Welford's online algorithm
         # m是均值
 
         # 算出新的均值
-        m[label] = m[label] + (trace - m[label]) / (count[label])
+        meanMatrix[label] = meanMatrix[label] + (trace - meanMatrix[label]) / (count[label])
 
         #在线计算协方差
         for i in range(num_of_PoIs):
@@ -219,19 +218,26 @@ for i in range(part):
                 # new meany
                 # meany += (y - meany) / count[label]
                 # C =( C * (n-1) +  dx * (y - meany) ) / n
-                covMatrix[label][i][j] += dx * (y - m[label][j])
+                covMatrix[label][i][j] += dx * (y - meanMatrix[label][j])
 
     #计算均值
 
 # 所有part遍历完成之后，最终求出协方差
 for label in input_data_unique:
+    if label == 1:
+        print("label",label)
+        print("meanMatrix")
+        print(meanMatrix[label])
     for i in range(num_of_PoIs):
         for j in range(num_of_PoIs):
-            covMatrix[label][i][j] = C[label][i][j] / count[l]
+            covMatrix[label][i][j] = covMatrix[label][i][j] / count[label]
 
+    if label == 1:
+        print("covMatrix")
+        print(covMatrix[label])
 
 # 下面是开始攻击
-attack_traces = np.load()
+
 
 # 256种猜测的分数
 P_k = np.zeros(256)
@@ -240,11 +246,12 @@ P_k = np.zeros(256)
 attack_part = 2
 # 从第几个part开始
 attack_part_start_index = 50
-for i in range(attack_part):
+print("开始攻击")
+for i in trange(attack_part):
 
 
     # 一个part的曲线
-    traces = np.load("F:/tracexinzeng32sh8/arrAttackPart{0}.npy".format(i + attack_part_start_index))
+    traces = np.load("F:/tracexinzeng32sh8/arrPart{0}.npy".format(i + attack_part_start_index))
 
     for j in range(len(traces)):
         # 取出PoI
@@ -254,6 +261,8 @@ for i in range(attack_part):
         for label in input_data_unique:
 
             # Find p_{k,j}
+            print(meanMatrix[label].shape)
+            print(covMatrix[label].shape)
             rv = multivariate_normal(meanMatrix[label], covMatrix[label])
             p_kj = rv.pdf(a)
 
