@@ -8,7 +8,7 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
     v = [None] * 300
     M2 = [None] * 300
     # trace = np.load(url_trace + r"arrPart0.npy")
-    trace = np.load(url_trace + r"arrPart0.npy")
+    trace = np.load(url_trace + trace_name.format(0))
     # count_temp = np.zeros(300, dtype=np.int32)
 
     # count_temp是统计每一个label的数量
@@ -25,9 +25,11 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
         M2[i] = np.zeros(trace.shape[1])
     # n是block数
     for j in trange(n):
-        data = np.loadtxt(url_data + data_name + r"{0}.txt".format(j), delimiter=',', dtype="int")
+        data = np.loadtxt(url_data + data_name.format(j), delimiter=',', dtype="int")
+        print("此处用汉明重量，记得删除")
+        data = [hammingWeight(label) for label in data]
         # print(data)
-        trace = np.load(url_trace + trace_name + r"{0}.npy".format(j))
+        trace = np.load(url_trace + trace_name.format(j))
 
         for count, label in enumerate(data):
             count_temp[label] +=1
@@ -69,20 +71,32 @@ def prepare_data(url_trace, trace_name, url_data, data_name, n, loadData):
     noise_mean = np.mean(noise, axis=0)
     return signal_var / noise_mean
 
+# 求一个数的汉明重量
+def hammingWeight(n):
+    c = 0
+    while n:
+        c += 1
+        n &= n - 1
 
+    return c
 def snr_function(n, url_trace, trace_name, url_data, data_name):
     plt.rcParams['figure.figsize'] = (12.0, 4.0)
     f, ax = plt.subplots(1, 1)
     ax.set_title('snr_traces')
-    list = (np.unique(np.loadtxt(url_data + data_name + r"0.txt", delimiter=',', dtype="int"))).tolist()
-    for i in range(n - 1):
-        dataaaa = np.loadtxt(url_data + data_name + r"{0}.txt".format(i + 1), delimiter=',', dtype="int")
+    list = []
+    for i in range(n):
+        dataaaa = np.loadtxt(url_data + data_name.format(i), delimiter=',', dtype="int")
+        print("此处变成hamming重量，记得恢复")
+        dataaaa = [hammingWeight(label) for label in dataaaa]
         num = (np.unique(dataaaa)).tolist()
+
         list = list + num
     loadData = (np.unique(list))
     # 得到的loadData是*所有块中*去重后的输入数据
+
+
     result_data = prepare_data(url_trace, trace_name, url_data, data_name, n, loadData)
-    np.save(r"F:/weixinzeng32sh8/snr_data_better_var.npy", result_data)
+    np.save(url_trace + snr_save_file_name, result_data)
     ax.plot(result_data)
     plt.show()
 
@@ -93,8 +107,10 @@ if __name__ == '__main__':
     url_trace = r"F:/weixinzeng32sh8/"
     url_data = r"F:/weixinzeng32sh8/"
 
-    data_name = "aaadata"
-    trace_name = "arrPart"
+    data_name = "aaadata{0}.txt"
+    trace_name = "arrPart{0}.npy"
+    snr_save_file_name = "snr_data_better_var.npy"
     n = 1000
+    print("使用的块数", n)
     # 运行此函数
     snr_function(n, url_trace, trace_name, url_data, data_name)
