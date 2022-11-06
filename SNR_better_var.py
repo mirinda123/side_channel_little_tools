@@ -104,13 +104,15 @@ def snr_function(n, url_trace, trace_name, url_data, data_name):
 if __name__ == '__main__':
     # 确定文件路径，名字，块数
 
-    url_trace = r"F:/weixinzeng32sh8/"
-    url_data = r"F:/weixinzeng32sh8/"
+    #url_trace = r"F:/weixinzeng32sh8/"
+    #url_data = r"F:/weixinzeng32sh8/"
 
+    url_trace = r"F:/weixinzeng_wave_filter_trace_16bit/"
+    url_data = r"F:/weixinzeng_wave_filter_trace_16bit/"
     data_name = "aaadata{0}.txt"
     trace_name = "arrPart{0}.npy"
     snr_save_file_name = "snr_data_better_var.npy"
-    n = 1000
+    n = 300
     print("使用的块数", n)
     # 运行此函数
     snr_function(n, url_trace, trace_name, url_data, data_name)

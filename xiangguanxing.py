@@ -67,9 +67,12 @@ def big_correlation_func(n, url_trace, trace_name,url_data,data_name):
 
 if __name__ == '__main__':
     # 文件块数
-    n = 1000
-    url_trace = r"F:/weixinzeng32sh8/"
-    url_data = r"F:/weixinzeng32sh8/"
+    n = 300
+    # url_trace = r"F:/weixinzeng32sh8/"
+    # url_data = r"F:/weixinzeng32sh8/"
+
+    url_trace = r"F:/weixinzeng_wave_filter_trace_16bit/"
+    url_data = r"F:/weixinzeng_wave_filter_trace_16bit/"
 
     data_name = "aaadata{0}.txt"
     trace_name = "arrPart{0}.npy"
