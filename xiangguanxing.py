@@ -71,8 +71,11 @@ if __name__ == '__main__':
     # url_trace = r"F:/weixinzeng32sh8/"
     # url_data = r"F:/weixinzeng32sh8/"
 
-    url_trace = r"F:/weixinzeng_wave_filter_trace_16bit/"
-    url_data = r"F:/weixinzeng_wave_filter_trace_16bit/"
+    # url_trace = r"F:/weixinzeng_wave_filter_trace_16bit/"
+    # url_data = r"F:/weixinzeng_wave_filter_trace_16bit/"
+
+    url_trace = r"F:/another_CPU/5mhz_filter_8bit/"
+    url_data = r"F:/another_CPU/5mhz_filter_8bit/"
 
     data_name = "aaadata{0}.txt"
     trace_name = "arrPart{0}.npy"
@@ -84,5 +87,6 @@ if __name__ == '__main__':
     ax.set_title('hw_cpa_traces')
     result = big_correlation_func(n, url_trace, trace_name,url_data,data_name)
     ax.plot(result)
-    plt.show()
+
     np.save(url_trace + snr_save_file_name, result)
+    plt.show()

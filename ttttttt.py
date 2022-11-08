@@ -10,11 +10,11 @@ import numpy as np
 
 
 
-print(np.linspace(2447,2562,15).astype(int).tolist())
-print(np.linspace(2935,3043,15).astype(int).tolist())
-print(np.linspace(3173,3345,15).astype(int).tolist())
-print(np.linspace(3545,3640,15).astype(int).tolist())
-print(np.linspace(3836,3926,15).astype(int).tolist())
-print(np.linspace(4140,4245,15).astype(int).tolist())
-print(np.linspace(4428,4528,15).astype(int).tolist())
-print(np.linspace(4730,4832,15).astype(int).tolist())
+print(np.linspace(5972,6083,30).astype(int).tolist())
+print(np.linspace(6677,6810,30).astype(int).tolist())
+print(np.linspace(7027,7160,30).astype(int).tolist())
+print(np.linspace(7439,7559,30).astype(int).tolist())
+print(np.linspace(7816,7922,30).astype(int).tolist())
+print(np.linspace(8193,8281,30).astype(int).tolist())
+print(np.linspace(8570,8654,30).astype(int).tolist())
+print(np.linspace(8942,9039,30).astype(int).tolist())
