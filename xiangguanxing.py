@@ -74,8 +74,11 @@ if __name__ == '__main__':
     # url_trace = r"F:/weixinzeng_wave_filter_trace_16bit/"
     # url_data = r"F:/weixinzeng_wave_filter_trace_16bit/"
 
-    url_trace = r"F:/another_CPU/5mhz_filter_8bit/"
-    url_data = r"F:/another_CPU/5mhz_filter_8bit/"
+    # url_trace = r"F:/another_CPU/5mhz_filter_8bit_new/"
+    # url_data = r"F:/another_CPU/5mhz_filter_8bit_new/"
+
+    url_trace = r"F:/another_CPU/5mhz_filter_16bit/"
+    url_data = r"F:/another_CPU/5mhz_filter_16bit/"
 
     data_name = "aaadata{0}.txt"
     trace_name = "arrPart{0}.npy"

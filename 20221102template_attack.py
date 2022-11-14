@@ -6,7 +6,24 @@ from tqdm import trange
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
+# numPOIs: 有多少个PoI
+# POIspacing: 至少相隔多元
+def choosePoI(correlation_file_path, correlation_file_name, numPOIs, POIspacing):
+    corr_trace = abs(np.load(correlation_file_path + correlation_file_name))[correlation_file_offset:]
+    PoIs = []
+    # Repeat until we have enough POIs
+    for i in range(numPOIs):
+        # Find the biggest peak and add it to the list of POIs
+        nextPOI = corr_trace.argmax()
+        PoIs.append(nextPOI)
 
+        # 把周围的点清零
+        # Make sure we don't go out of bounds
+        poiMin = max(0, nextPOI - POIspacing)
+        poiMax = min(nextPOI + POIspacing, len(corr_trace))
+        for j in range(poiMin, poiMax):
+            corr_trace[j] = 0
+    return PoIs
 # 归一化
 def to_one2(traces):
 
@@ -181,85 +198,41 @@ print("loadtxt后用处理成汉明重量了！")
 
 # file_path = r"F:/weixinzeng_wave_filter_trace_16bit/"
 # file_path = r"F:/weixinzeng32sh8/"
-file_path = r"F:/another_CPU/5mhz_filter_8bit/"
+# file_path = r"F:/another_CPU/5mhz_filter_8bit_new/"
+file_path = "F:/another_CPU/5mhz_filter_16bit/"
 # file_path = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/"
 input_data_file_name = "aaadata{0}.txt"
 # input_data_file_name = "lab3_3_zhongjianzhi_chaifen{0}.txt"
 traces_file_name = "arrPart{0}.npy"
 # traces_file_name = "lab3_3_traces_chaifen{0}.npy"
-
+# 注意要有相关性曲线的文件
+correlation_file_path = r"C:/Users/jfj/Desktop/PoI/another_CPU/5mhz_filter_16bit/"
+correlation_file_name = "xiang_guan_xing.npy"
+correlation_file_offset = 5000  # 表示从第多少个点开始选PoI。因为第一个尖峰不看
 num_of_each_part = 500  # 每个Part多少条曲线
+
+numPOIs = 30    # 选择多少个PoI
+POIspacing = 10     # PoI之间的间隔至少为多少
 ##########################
 # 下面是建模参数 #
 ##########################
-part = 200  # 选择多少个 part 进行建模
+part = 2  # 选择多少个 part 进行建模
 profiling_part_start_index = 0  # 建模曲线首先从哪一个part开始
-num_of_class = 9  # 对于8bit HW是9类， 16bitHW是17类， 0-255有256类
+num_of_class = 17  # 对于8bit HW是9类， 16bitHW是17类， 0-255有256类, 表示攻击的时候对多少类进行攻击
 
 ##########################
 # 下面是PCA参数 #
 ##########################
 pca_part = part  # 用多少 part 用来做 pca
 pca_part_start_index = profiling_part_start_index    # 首先从哪一个part开始
-pca_components = 20
+pca_components = 8
 use_pca = True  # 是否使用降维
 # pca_method = ["full_traces", "mean_9", "mean_256", "mean_17"] 对应的下标
-pca_method_select = 2
+pca_method_select = 3
 
 ##########################
 
 print("是否使用降维:", use_pca)
-# 这个PoI对应的是 F:\tracexinzeng32sh8 256类
-# PoIs = [3134, 4140, 5160, 6170, 7190, 8190, 9220, 10220,11240, 12270,13300 ,14280,15310,16330,17330,18350,19360,20430,21390,23400,25430,27450 ,29470]
-# 这个PoI对应的是 F:\weixinzeng32sh8 256类
-# PoIs = [1004, 1200, 1320, 1443, 1560, 1675, 1799, 1920]
-
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，左边第一个尖峰没有用，左边第二个尖峰取的点多一些，取5个点吧,后面每个小尖峰都取2个点
-# PoIs = [983, 985, 989, 994, 998, 1004, 1009, 1188, 1209, 1304, 1330, 1429, 1449, 1548, 1569, 1668, 1690, 1788, 1810,
-#         1904, 1909, 1930]
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，左边第一个尖峰没有用，后面每个尖峰取10个点
-# F:\weixinzeng32sh8数据集是没有用滤波器，8位，但是没有0没有255
-# PoIs = [984, 989, 995, 1001, 1007, 1013, 1019, 1025, 1031, 1037,
-# 1181, 1186, 1191, 1197, 1202, 1207, 1213, 1218, 1223, 1229,
-# 1299, 1305, 1312, 1318, 1325, 1331, 1338, 1344, 1351, 1358,
-# 1418, 1422, 1426, 1430, 1434, 1438, 1442, 1446, 1450, 1455,
-# 1542, 1545, 1549, 1553, 1556, 1560, 1564, 1567, 1571, 1575,
-# 1663, 1667, 1671, 1676, 1680, 1684, 1689, 1693, 1697, 1702,
-# 1783, 1786, 1789, 1792, 1795, 1799, 1802, 1805, 1808, 1812,
-# 1903, 1906, 1910, 1913, 1917, 1920, 1924, 1927, 1931, 1935]
-
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，左边第一个尖峰没有用，后面每个尖峰取15个点
-# PoIs = [984, 987, 991, 995, 999, 1002, 1006, 1010, 1014, 1018, 1021, 1025, 1029, 1033, 1037,
-# 1181, 1184, 1187, 1191, 1194, 1198, 1201, 1205, 1208, 1211, 1215, 1218, 1222, 1225, 1229,
-# 1299, 1303, 1307, 1311, 1315, 1320, 1324, 1328, 1332, 1336, 1341, 1345, 1349, 1353, 1358,
-# 1418, 1420, 1423, 1425, 1428, 1431, 1433, 1436, 1439, 1441, 1444, 1447, 1449, 1452, 1455,
-# 1542, 1544, 1546, 1549, 1551, 1553, 1556, 1558, 1560, 1563, 1565, 1567, 1570, 1572, 1575,
-# 1663, 1665, 1668, 1671, 1674, 1676, 1679, 1682, 1685, 1688, 1690, 1693, 1696, 1699, 1702,
-# 1783, 1785, 1787, 1789, 1791, 1793, 1795, 1797, 1799, 1801, 1803, 1805, 1807, 1809, 1812,
-# 1903, 1905, 1907, 1909, 1912, 1914, 1916, 1919, 1921, 1923, 1925, 1928, 1930, 1932, 1935]
-
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，左边第一个尖峰没有用，后面每个尖峰取20个点
-# PoIs = [984, 986, 989, 992, 995, 997, 1000, 1003, 1006, 1009, 1011, 1014, 1017, 1020, 1023, 1025, 1028, 1031, 1034, 1037,
-# 1181, 1183, 1186, 1188, 1191, 1193, 1196, 1198, 1201, 1203, 1206, 1208, 1211, 1213, 1216, 1218, 1221, 1223, 1226, 1229,
-# 1299, 1302, 1305, 1308, 1311, 1314, 1317, 1320, 1323, 1326, 1330, 1333, 1336, 1339, 1342, 1345, 1348, 1351, 1354, 1358,
-# 1418, 1419, 1421, 1423, 1425, 1427, 1429, 1431, 1433, 1435, 1437, 1439, 1441, 1443, 1445, 1447, 1449, 1451, 1453, 1455,
-# 1542, 1543, 1545, 1547, 1548, 1550, 1552, 1554, 1555, 1557, 1559, 1561, 1562, 1564, 1566, 1568, 1569, 1571, 1573, 1575,
-# 1663, 1665, 1667, 1669, 1671, 1673, 1675, 1677, 1679, 1681, 1683, 1685, 1687, 1689, 1691, 1693, 1695, 1697, 1699, 1702,
-# 1783, 1784, 1786, 1787, 1789, 1790, 1792, 1793, 1795, 1796, 1798, 1799, 1801, 1802, 1804, 1805, 1807, 1808, 1810, 1812,
-# 1903, 1904, 1906, 1908, 1909, 1911, 1913, 1914, 1916, 1918, 1919, 1921, 1923, 1924, 1926, 1928, 1929, 1931, 1933, 1935]
-
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，高于0.005的点左边第一个尖峰没有用
-# PoIs = [1021, 1025, 1210, 1329, 1449, 1569, 1689, 1809, 1929]
-
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，只看左边第二个尖峰 10个点
-# PoIs = [977, 983, 989, 995, 1001, 1007, 1013, 1019, 1025, 1032]
-
-
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，只看左边第二个尖峰 15个点
-# PoIs = [977, 980, 984, 988, 992, 996, 1000, 1004, 1008, 1012, 1016, 1020, 1024, 1028, 1032]
-# 这个PoI对应的是 F:\weixinzeng32sh8 9类，汉明重量 ，只看左边第二个尖峰 20个点
-# PoIs = [977, 979, 982, 985, 988, 991, 994, 997, 1000, 1003, 1005, 1008, 1011, 1014, 1017, 1020, 1023, 1026, 1029, 1032]
-
 # 这个PoI对应的是 weixinzeng_wave_filter_trace_16bit 每一个尖峰10个点 8个尖峰
 # PoIs = [2448, 2464, 2481, 2497, 2514, 2530, 2547, 2563, 2580, 2597,
 #         2946, 2956, 2966, 2976, 2986, 2996, 3006, 3016, 3026, 3037,
@@ -297,7 +270,7 @@ print("是否使用降维:", use_pca)
 # PoIs = [2445, 2455, 2466, 2476, 2487, 2497, 2508, 2518, 2529, 2540]
 
 # 这个PoI对应的是 weixinzeng_wave_filter_trace_16bit （5hmz示波器）只看第二个尖峰，取15个点
-#PoIs = [2445, 2451, 2458, 2465, 2472, 2478, 2485, 2492, 2499, 2506, 2512, 2519, 2526, 2533, 2540]
+# PoIs = [2445, 2451, 2458, 2465, 2472, 2478, 2485, 2492, 2499, 2506, 2512, 2519, 2526, 2533, 2540]
 
 # 这个PoI对应的是 weixinzeng_wave_filter_trace_16bit （5hmz示波器）只看第二个尖峰，取20个点
 # PoIs = [2445, 2448, 2451, 2454, 2458, 2461, 2464, 2467, 2471, 2474, 2477, 2481, 2484, 2487, 2490, 2494, 2497, 2500, 2503, 2507, 2510, 2513, 2517, 2520, 2523, 2526, 2530, 2533, 2536, 2540]
@@ -341,16 +314,28 @@ print("是否使用降维:", use_pca)
 # ]
 
 # 这个PoI对应的是 F:\another_CPU\5mhz_filter_8bit 看8个尖峰 , 每个尖峰取30个点
-PoIs = [
-5972, 5975, 5979, 5983, 5987, 5991, 5994, 5998, 6002, 6006, 6010, 6014, 6017, 6021, 6025, 6029, 6033, 6037, 6040, 6044, 6048, 6052, 6056, 6060, 6063, 6067, 6071, 6075, 6079, 6083,
-6677, 6681, 6686, 6690, 6695, 6699, 6704, 6709, 6713, 6718, 6722, 6727, 6732, 6736, 6741, 6745, 6750, 6754, 6759, 6764, 6768, 6773, 6777, 6782, 6787, 6791, 6796, 6800, 6805, 6810,
-7027, 7031, 7036, 7040, 7045, 7049, 7054, 7059, 7063, 7068, 7072, 7077, 7082, 7086, 7091, 7095, 7100, 7104, 7109, 7114, 7118, 7123, 7127, 7132, 7137, 7141, 7146, 7150, 7155, 7160,
-7439, 7443, 7447, 7451, 7455, 7459, 7463, 7467, 7472, 7476, 7480, 7484, 7488, 7492, 7496, 7501, 7505, 7509, 7513, 7517, 7521, 7525, 7530, 7534, 7538, 7542, 7546, 7550, 7554, 7559,
-7816, 7819, 7823, 7826, 7830, 7834, 7837, 7841, 7845, 7848, 7852, 7856, 7859, 7863, 7867, 7870, 7874, 7878, 7881, 7885, 7889, 7892, 7896, 7900, 7903, 7907, 7911, 7914, 7918, 7922,
-8193, 8196, 8199, 8202, 8205, 8208, 8211, 8214, 8217, 8220, 8223, 8226, 8229, 8232, 8235, 8238, 8241, 8244, 8247, 8250, 8253, 8256, 8259, 8262, 8265, 8268, 8271, 8274, 8277, 8281,
-8570, 8572, 8575, 8578, 8581, 8584, 8587, 8590, 8593, 8596, 8598, 8601, 8604, 8607, 8610, 8613, 8616, 8619, 8622, 8625, 8627, 8630, 8633, 8636, 8639, 8642, 8645, 8648, 8651, 8654,
-8942, 8945, 8948, 8952, 8955, 8958, 8962, 8965, 8968, 8972, 8975, 8978, 8982, 8985, 8988, 8992, 8995, 8998, 9002, 9005, 9008, 9012, 9015, 9018, 9022, 9025, 9028, 9032, 9035, 9039,
-]
+# PoIs = [
+# 5972, 5975, 5979, 5983, 5987, 5991, 5994, 5998, 6002, 6006, 6010, 6014, 6017, 6021, 6025, 6029, 6033, 6037, 6040, 6044, 6048, 6052, 6056, 6060, 6063, 6067, 6071, 6075, 6079, 6083,
+# 6677, 6681, 6686, 6690, 6695, 6699, 6704, 6709, 6713, 6718, 6722, 6727, 6732, 6736, 6741, 6745, 6750, 6754, 6759, 6764, 6768, 6773, 6777, 6782, 6787, 6791, 6796, 6800, 6805, 6810,
+# 7027, 7031, 7036, 7040, 7045, 7049, 7054, 7059, 7063, 7068, 7072, 7077, 7082, 7086, 7091, 7095, 7100, 7104, 7109, 7114, 7118, 7123, 7127, 7132, 7137, 7141, 7146, 7150, 7155, 7160,
+# 7439, 7443, 7447, 7451, 7455, 7459, 7463, 7467, 7472, 7476, 7480, 7484, 7488, 7492, 7496, 7501, 7505, 7509, 7513, 7517, 7521, 7525, 7530, 7534, 7538, 7542, 7546, 7550, 7554, 7559,
+# 7816, 7819, 7823, 7826, 7830, 7834, 7837, 7841, 7845, 7848, 7852, 7856, 7859, 7863, 7867, 7870, 7874, 7878, 7881, 7885, 7889, 7892, 7896, 7900, 7903, 7907, 7911, 7914, 7918, 7922,
+# 8193, 8196, 8199, 8202, 8205, 8208, 8211, 8214, 8217, 8220, 8223, 8226, 8229, 8232, 8235, 8238, 8241, 8244, 8247, 8250, 8253, 8256, 8259, 8262, 8265, 8268, 8271, 8274, 8277, 8281,
+# 8570, 8572, 8575, 8578, 8581, 8584, 8587, 8590, 8593, 8596, 8598, 8601, 8604, 8607, 8610, 8613, 8616, 8619, 8622, 8625, 8627, 8630, 8633, 8636, 8639, 8642, 8645, 8648, 8651, 8654,
+# 8942, 8945, 8948, 8952, 8955, 8958, 8962, 8965, 8968, 8972, 8975, 8978, 8982, 8985, 8988, 8992, 8995, 8998, 9002, 9005, 9008, 9012, 9015, 9018, 9022, 9025, 9028, 9032, 9035, 9039,
+# ]
+
+# 这个PoI对应的是 F:\another_CPU\5mhz_filter_8bit_new 看8个尖峰 , 每个尖峰取30个点
+# PoIs = [5953, 5958, 5964, 5969, 5975, 5981, 5986, 5992, 5997, 6003, 6009, 6014, 6020, 6026, 6031, 6037, 6042, 6048, 6054, 6059, 6065, 6071, 6076, 6082, 6087, 6093, 6099, 6104, 6110, 6116,
+# 6677, 6682, 6688, 6694, 6700, 6706, 6711, 6717, 6723, 6729, 6735, 6741, 6746, 6752, 6758, 6764, 6770, 6776, 6781, 6787, 6793, 6799, 6805, 6811, 6816, 6822, 6828, 6834, 6840, 6846,
+# 7059, 7064, 7070, 7076, 7081, 7087, 7093, 7099, 7104, 7110, 7116, 7121, 7127, 7133, 7139, 7144, 7150, 7156, 7162, 7167, 7173, 7179, 7184, 7190, 7196, 7202, 7207, 7213, 7219, 7225,
+# 7427, 7431, 7436, 7441, 7446, 7451, 7456, 7461, 7466, 7471, 7476, 7481, 7486, 7491, 7496, 7500, 7505, 7510, 7515, 7520, 7525, 7530, 7535, 7540, 7545, 7550, 7555, 7560, 7565, 7570,
+# 7796, 7802, 7808, 7814, 7820, 7826, 7832, 7838, 7844, 7850, 7856, 7862, 7868, 7874, 7880, 7887, 7893, 7899, 7905, 7911, 7917, 7923, 7929, 7935, 7941, 7947, 7953, 7959, 7965, 7972,
+# 8174, 8179, 8185, 8191, 8197, 8203, 8208, 8214, 8220, 8226, 8232, 8238, 8243, 8249, 8255, 8261, 8267, 8273, 8278, 8284, 8290, 8296, 8302, 8308, 8313, 8319, 8325, 8331, 8337, 8343,
+# 8559, 8564, 8570, 8575, 8581, 8586, 8592, 8597, 8603, 8608, 8614, 8619, 8625, 8630, 8636, 8641, 8647, 8652, 8658, 8663, 8669, 8674, 8680, 8685, 8691, 8696, 8702, 8707, 8713, 8719,
+# 8938, 8941, 8944, 8948, 8951, 8955, 8958, 8961, 8965, 8968, 8972, 8975, 8978, 8982, 8985, 8989, 8992, 8996, 8999, 9002, 9006, 9009, 9013, 9016, 9019, 9023, 9026, 9030, 9033, 9037]
+# 这个PoI对应的是 F:\another_CPU\5mhz_filter_8bit 只看第二个尖峰,这个尖峰的每个点都取
+# PoIs = [5957, 5958, 5959, 5960, 5961, 5962, 5963, 5964, 5965, 5966, 5967, 5968, 5969, 5970, 5971, 5972, 5973, 5974, 5975, 5976, 5977, 5978, 5979, 5980, 5981, 5982, 5983, 5984, 5985, 5986, 5987, 5988, 5989, 5990, 5991, 5992, 5993, 5994, 5995, 5996, 5997, 5998, 5999, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6008, 6009, 6010, 6011, 6012, 6013, 6014, 6015, 6016, 6017, 6018, 6019, 6020, 6021, 6022, 6023, 6024, 6025, 6026, 6027, 6028, 6029, 6030, 6031, 6032, 6033, 6034, 6035, 6036, 6037, 6038, 6039, 6040, 6041, 6042, 6043, 6044, 6045, 6046, 6047, 6048, 6049, 6050, 6051, 6052, 6053, 6054, 6055, 6056, 6057, 6058, 6059, 6060, 6061, 6062, 6063, 6064, 6065, 6066, 6067, 6068, 6069, 6070, 6071, 6072, 6073, 6074, 6075, 6076, 6077, 6078, 6079, 6080, 6081, 6082, 6083, 6084, 6085, 6086, 6087, 6088, 6089, 6090, 6091, 6092, 6093, 6094, 6095, 6096, 6097, 6098, 6099, 6100, 6101, 6102, 6103, 6104, 6105, 6106, 6107, 6108, 6109, 6110, 6111, 6112, 6113, 6114]
 
 
 # 这个PoI对应的是 AES D:\ChipWhisperer5_52\cw\home\portable\chipwhisperer\jupyter\courses\sca101\traces  lab3_3_yihuohoudezhiPart0.npy 的脚本自动挑选出来的
@@ -359,6 +344,10 @@ PoIs = [
 # full 是 对全体 pca_part * num_of_each_part 条曲线做PCA_fit
 # mean_9 是用汉明重量，对9条平均曲线做PCA_fit
 # mean_256 是对256条平均曲线做PCA_fit
+
+PoIs = choosePoI(correlation_file_path, correlation_file_name, numPOIs, POIspacing)
+
+print("PoIs",PoIs)
 scale= StandardScaler()
 pca_method = ["full_traces", "mean_9", "mean_256", "mean_17"]
 
@@ -412,7 +401,11 @@ if use_pca == True:
                 pca_count[label])
 
         # 到这里计算出了均值，即temp_for_pca
-
+        # print(temp_for_pca.shape)
+        # plt.plot(temp_for_pca.T)
+        # for i in range(temp_for_pca.shape[0]):
+        #     plt.plot(temp_for_pca[i])
+        plt.show()
         if temp_for_pca[0][0] == 0:
             print("均值PCA时剔除零值")
             print("temp_for_pca去掉第一行")
@@ -433,14 +426,14 @@ if use_pca == False:
     covMatrix = [None] * num_of_class
     # 初始化count ，用来记录每一个label下曲线的数目
     count = [None] * num_of_class
-    for i in range(num_of_class):
-        meanMatrix[i] = np.zeros(num_of_PoIs)
-    for i in range(num_of_class):
-        old_mean[i] = np.zeros(num_of_PoIs)
-    for i in range(num_of_class):
-        covMatrix[i] = np.zeros((num_of_PoIs, num_of_PoIs))
-    for i in range(num_of_class):
-        count[i] = 0
+    for label in range(num_of_class):
+        meanMatrix[label] = np.zeros(num_of_PoIs)
+    for label in range(num_of_class):
+        old_mean[label] = np.zeros(num_of_PoIs)
+    for label in range(num_of_class):
+        covMatrix[label] = np.zeros((num_of_PoIs, num_of_PoIs))
+    for label in range(num_of_class):
+        count[label] = 0
 
 # 区别只有 num_of_class 变成pca_components
 else:
@@ -451,14 +444,14 @@ else:
     covMatrix = [None] * num_of_class
     # 初始化count ，用来记录每一个label下曲线的数目
     count = [None] * num_of_class
-    for i in range(num_of_class):
-        meanMatrix[i] = np.zeros(pca_components)
-    for i in range(num_of_class):
-        old_mean[i] = np.zeros(pca_components)
-    for i in range(num_of_class):
-        covMatrix[i] = np.zeros((pca_components, pca_components))
-    for i in range(num_of_class):
-        count[i] = 0
+    for label in range(num_of_class):
+        meanMatrix[label] = np.zeros(pca_components)
+    for label in range(num_of_class):
+        old_mean[label] = np.zeros(pca_components)
+    for label in range(num_of_class):
+        covMatrix[label] = np.zeros((pca_components, pca_components))
+    for label in range(num_of_class):
+        count[label] = 0
 
 
 print("开始建模")
@@ -513,16 +506,18 @@ for label in range(num_of_class):
         for j in range(traces.shape[1]):
             covMatrix[label][i][j] = covMatrix[label][i][j] / (count[label] - 1)
 
+
 # 求均值矩阵，协方差矩阵这部分验证了，没有问题
 
 # 下面是对多条曲线进行攻击,但是每个label只使用一条曲线进行攻击，计算所有攻击的成功率
 P_k = np.zeros(num_of_class)  # num_of_class 种猜测的分数
-
+bayes_score = np.zeros(num_of_class)
 ##########################
 # 下面是进行攻击部分的参数 #
 ##########################
-attack_part = 8  # 攻击曲线使用多少个part
-attack_part_start_index = 300  # 从第几个part开始
+use_bayes = True
+attack_part = 5  # 攻击曲线使用多少个part
+attack_part_start_index = 200  # 从第几个part开始
 ##########################
 
 
@@ -530,6 +525,22 @@ success_num = 0  # 记录有多少条攻击成功了
 count_of_used_traces = 0  # 记录有多少条label为target_label的曲线被使用了
 success_rate_list = []  # 记录每一次攻击的成功率
 print("开始攻击，对多条曲线, 求成功率")
+print("是否使用PCA",use_pca)
+count_of_each_label_when_attacking = [0] * num_of_class
+probability_of_each_label_when_attacking = [0] * num_of_class
+
+for i in trange(attack_part):   # 先统计一下每个label的数目
+    input_data = np.loadtxt(file_path + input_data_file_name.format(i + attack_part_start_index), delimiter=',',
+                            dtype="int")
+    input_data = [hammingWeight(label) for label in input_data]
+
+    for label in input_data:    # 遍历一个Part 中的所有输入
+        count_of_each_label_when_attacking[label] += 1
+test_total = 0
+for label in range(num_of_class):
+    probability_of_each_label_when_attacking[label] = ( count_of_each_label_when_attacking[label] / (attack_part * num_of_each_part) )
+    test_total += probability_of_each_label_when_attacking[label]
+print("test_total", test_total)
 for i in trange(attack_part):
     # 从 attack_part_start_index 开始，依次读取一个part的曲线
     traces = np.load(file_path + traces_file_name.format(i + attack_part_start_index))
@@ -538,7 +549,7 @@ for i in trange(attack_part):
     traces = traces[:, PoIs]    # 只选取这些PoI。
     assert traces.shape[1] == len(PoIs)
     # 降维
-    if use_pca == True:
+    if use_pca:
         traces = pca.transform(traces)
         assert traces.shape[1] == pca_components
     input_data = np.loadtxt(file_path + input_data_file_name.format(i + attack_part_start_index), delimiter=',',
@@ -559,15 +570,31 @@ for i in trange(attack_part):
             rv = multivariate_normal(meanMatrix[label], covMatrix[label],allow_singular=True)  # 选择 label 所对应的模型
             p_kj = rv.pdf(traces[j])  # 将曲线带入公式
             # 注意 这里不是+=了,不是求累计的分数
-            P_k[label] = np.log(p_kj)  # 每一个模板的分数放进P_k
-        # 如果最右边的数（猜测的密钥中分数最高的 所对应的下标） == label
-        if P_k.argsort()[-1] == input_data[j]:  # input_data[j] 是这条曲线对应的 label，已经经过汉明重量的处理了
-            success_num += 1
+            if use_bayes == False:
+                P_k[label] = np.log(p_kj)  # 每一个模板的分数放进P_k
+            else:
+                P_k[label] = p_kj   # 取对数后会出现负无穷
+        if use_bayes == False:   # 不使用Bayes
+            # 如果最右边的数（猜测的密钥中分数最高的 所对应的下标） == label
+            if P_k.argsort()[-1] == input_data[j]:  # input_data[j] 是这条曲线对应的 label，已经经过汉明重量的处理了
+                success_num += 1
+        else:   # 使用bayes
+            denominator =  0
+            for label in range(num_of_class):
+                # P_k[label] 是 P(x|k)
+                # probability_of_each_label_when_attacking[label]是 P(k)
+                denominator += P_k[label] * probability_of_each_label_when_attacking[label]
+            for label in range(num_of_class):   # 开始猜测
+                bayes_score[label] = (probability_of_each_label_when_attacking[label] * P_k[label] ) / denominator
+            if bayes_score.argsort()[-1] == input_data[j]:  # input_data[j] 是这条曲线对应的 label，已经经过汉明重量的处理了
+                success_num += 1
         print("成功率", success_num / count_of_used_traces)
         success_rate_list.append(success_num / count_of_used_traces)
 
+np.save("success_rate.npy",success_rate_list)
 plt.plot(success_rate_list)
 plt.show()
+
 
 '''
 # 下面这个验证是正确的！！！！
