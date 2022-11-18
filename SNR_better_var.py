@@ -109,10 +109,17 @@ if __name__ == '__main__':
 
     url_trace = r"F:/weixinzeng_wave_filter_trace_16bit/"
     url_data = r"F:/weixinzeng_wave_filter_trace_16bit/"
+
+    url_trace = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/tutorials/courses/sca101/example_aes/"
+    url_data = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/tutorials/courses/sca101/example_aes/"
+
     data_name = "aaadata{0}.txt"
+    data_name = "example_aes_inter_part{0}.txt"
+
     trace_name = "arrPart{0}.npy"
+    trace_name = "example_aes_part{0}.npy"
     snr_save_file_name = "snr_data_better_var.npy"
-    n = 300
+    n = 250
     print("使用的块数", n)
     # 运行此函数
     snr_function(n, url_trace, trace_name, url_data, data_name)

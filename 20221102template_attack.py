@@ -199,36 +199,45 @@ print("loadtxt后用处理成汉明重量了！")
 # file_path = r"F:/weixinzeng_wave_filter_trace_16bit/"
 # file_path = r"F:/weixinzeng32sh8/"
 # file_path = r"F:/another_CPU/5mhz_filter_8bit_new/"
-file_path = "F:/another_CPU/5mhz_filter_16bit/"
+# file_path = "F:/another_CPU/5mhz_filter_16bit/"
+file_path = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/tutorials/courses/sca101/example_aes/"
+
 # file_path = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/"
-input_data_file_name = "aaadata{0}.txt"
+# input_data_file_name = "aaadata{0}.txt"
+input_data_file_name = "example_aes_inter_part{0}.txt"
 # input_data_file_name = "lab3_3_zhongjianzhi_chaifen{0}.txt"
-traces_file_name = "arrPart{0}.npy"
+# traces_file_name = "arrPart{0}.npy"
+traces_file_name = "example_aes_part{0}.npy"
 # traces_file_name = "lab3_3_traces_chaifen{0}.npy"
 # 注意要有相关性曲线的文件
-correlation_file_path = r"C:/Users/jfj/Desktop/PoI/another_CPU/5mhz_filter_16bit/"
+# correlation_file_path = r"C:/Users/jfj/Desktop/PoI/another_CPU/5mhz_filter_16bit/"
+correlation_file_path = r"C:/Users/jfj/Desktop/PoI/aes_test/"
 correlation_file_name = "xiang_guan_xing.npy"
+# correlation_file_name = "snr_data_better_var.npy"
 correlation_file_offset = 5000  # 表示从第多少个点开始选PoI。因为第一个尖峰不看
+correlation_file_offset = 0
 num_of_each_part = 500  # 每个Part多少条曲线
 
 numPOIs = 30    # 选择多少个PoI
 POIspacing = 10     # PoI之间的间隔至少为多少
+
 ##########################
 # 下面是建模参数 #
 ##########################
-part = 2  # 选择多少个 part 进行建模
+# 980
+part = 150  # 选择多少个 part 进行建模
 profiling_part_start_index = 0  # 建模曲线首先从哪一个part开始
-num_of_class = 17  # 对于8bit HW是9类， 16bitHW是17类， 0-255有256类, 表示攻击的时候对多少类进行攻击
-
+num_of_class = 256  # 对于8bit HW是9类， 16bitHW是17类， 0-255有256类, 表示攻击的时候对多少类进行攻击
+use_hammming = False
 ##########################
 # 下面是PCA参数 #
 ##########################
+use_pca = False  # 是否使用降维
 pca_part = part  # 用多少 part 用来做 pca
 pca_part_start_index = profiling_part_start_index    # 首先从哪一个part开始
-pca_components = 8
-use_pca = True  # 是否使用降维
+pca_components = 3
 # pca_method = ["full_traces", "mean_9", "mean_256", "mean_17"] 对应的下标
-pca_method_select = 3
+pca_method_select = 1
 
 ##########################
 
@@ -459,7 +468,8 @@ print("开始建模")
 for p in trange(part):
     input_data = np.loadtxt(file_path + input_data_file_name.format(p + profiling_part_start_index), delimiter=' ',
                             dtype="int")  # 读取一个part的输入数据
-    input_data = [hammingWeight(label) for label in input_data]  # 转化成汉明重量
+    if use_hammming:
+        input_data = [hammingWeight(label) for label in input_data]  # 转化成汉明重量
 
     # 从profiling_part_start_index开始，读取这个 part 的曲线
     traces = np.load(file_path + traces_file_name.format(p + profiling_part_start_index))
@@ -516,10 +526,10 @@ bayes_score = np.zeros(num_of_class)
 # 下面是进行攻击部分的参数 #
 ##########################
 use_bayes = True
-attack_part = 5  # 攻击曲线使用多少个part
-attack_part_start_index = 200  # 从第几个part开始
-##########################
+attack_part = 3  # 攻击曲线使用多少个part
 
+##########################
+attack_part_start_index = part  # 从建模曲线的下一条曲线开始攻击
 
 success_num = 0  # 记录有多少条攻击成功了
 count_of_used_traces = 0  # 记录有多少条label为target_label的曲线被使用了
@@ -532,15 +542,17 @@ probability_of_each_label_when_attacking = [0] * num_of_class
 for i in trange(attack_part):   # 先统计一下每个label的数目
     input_data = np.loadtxt(file_path + input_data_file_name.format(i + attack_part_start_index), delimiter=',',
                             dtype="int")
-    input_data = [hammingWeight(label) for label in input_data]
+    if use_hammming:
+        input_data = [hammingWeight(label) for label in input_data]
 
     for label in input_data:    # 遍历一个Part 中的所有输入
         count_of_each_label_when_attacking[label] += 1
 test_total = 0
-for label in range(num_of_class):
+for label in range(num_of_class):   # 计算每一个label的概率
     probability_of_each_label_when_attacking[label] = ( count_of_each_label_when_attacking[label] / (attack_part * num_of_each_part) )
     test_total += probability_of_each_label_when_attacking[label]
 print("test_total", test_total)
+print("probability_of_each_label_when_attacking",probability_of_each_label_when_attacking)
 for i in trange(attack_part):
     # 从 attack_part_start_index 开始，依次读取一个part的曲线
     traces = np.load(file_path + traces_file_name.format(i + attack_part_start_index))
@@ -554,7 +566,8 @@ for i in trange(attack_part):
         assert traces.shape[1] == pca_components
     input_data = np.loadtxt(file_path + input_data_file_name.format(i + attack_part_start_index), delimiter=',',
                             dtype="int")
-    input_data = [hammingWeight(label) for label in input_data]
+    if use_hammming:
+        input_data = [hammingWeight(label) for label in input_data]
     assert traces.shape[0] == len(input_data)
     for j in range(traces.shape[0]):    # 遍历这个part的每一条曲线
         count_of_used_traces += 1  # 使用的曲线数目 +1

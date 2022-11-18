@@ -14,26 +14,7 @@ from tqdm import tqdm, trange
 # np.nanmax:排除nan值求最大
 np.seterr(divide='ignore', invalid='ignore')
 from numba import njit, jit
-def moving_resamples(traces, k):
-    # if not isinstance(traces, np.ndarray):
-    #     raise TypeError("'data' should be a numpy ndarray.")
 
-    # 默认数据类型是float64
-    new_traces = np.zeros((traces.shape[0], traces.shape[1] // k), dtype=float)
-    if k >= traces.shape[1]:
-        raise ValueError('window is too bigooo!')
-    n = traces.shape[1]
-    for t in range(traces.shape[0]):
-        list = []
-        # //地板除
-        for i in range(n // k):
-            sum = 0
-            for j in range(i * k, i * k + k):
-                sum = traces[t][j] + sum
-            a = sum / k
-            list.append(a)
-        new_traces[t] = np.array(list)
-    return new_traces
 def getHW(n):
     ans = 0
     if n == 0:
@@ -43,7 +24,7 @@ def getHW(n):
         ans += 1
     return ans
 # all the attack need data matrix
-def big_correlation_func(n, url_trace, trace_name,url_data,data_name):
+def big_correlation_func(n, url_trace, trace_name,url_data,data_name, target_hamming):
     '''
 
     :param n: 变量的块数
@@ -54,10 +35,8 @@ def big_correlation_func(n, url_trace, trace_name,url_data,data_name):
 
 
     arr = np.load(url_trace + trace_name.format(0))
-    #arr = moving_resamples(arr,2)
     # data = np.load(url_data + r"new_arrdata0.npy")
     Na = arr.shape[1]
-    print(arr.shape)
     old_cov = np.zeros(Na)
     old_mean_data = 0
     old_mean_traces = np.zeros(Na)
@@ -66,11 +45,12 @@ def big_correlation_func(n, url_trace, trace_name,url_data,data_name):
     temp = 0
     for j in trange(n):
         data = np.loadtxt(url_data + data_name.format(j), delimiter=',', dtype="int")
-        if use_hamming:
-            data = [getHW(label) for label in data]
+        data = [getHW(label) for label in data]
         arr = np.load(url_trace + trace_name.format(j))
-        #arr = moving_resamples(arr, 2)
         for i in range(arr.shape[0]):
+
+            if(data[i] != target_hamming):  # 如果不是目标汉明重量，则跳过
+                continue
             new_mean_data = old_mean_data + (data[i] - old_mean_data) / (temp + 1)
             new_mean_traces = old_mean_traces + (arr[i] - old_mean_traces) / (temp + 1)
 
@@ -86,11 +66,16 @@ def big_correlation_func(n, url_trace, trace_name,url_data,data_name):
             old_var_data = new_var_data
             temp = temp + 1
     correlation_result = old_cov / np.sqrt(old_var_traces * old_var_data)
+    plt.plot(old_var_traces)
     return correlation_result
 
+
+    # 这个文件的目的是求某个汉明重量的方差
 if __name__ == '__main__':
+
     # 文件块数
-    n = 90
+    n = 450
+    target_hamming = 8
     # url_trace = r"F:/weixinzeng32sh8/"
     # url_data = r"F:/weixinzeng32sh8/"
 
@@ -100,28 +85,28 @@ if __name__ == '__main__':
     # url_trace = r"F:/another_CPU/5mhz_filter_8bit_new/"
     # url_data = r"F:/another_CPU/5mhz_filter_8bit_new/"
 
-    #url_trace = r"F:/another_CPU/5mhz_filter_16bit/"
-    #url_data = r"F:/another_CPU/5mhz_filter_16bit/"
-    use_hamming = True     # 如果使用汉明重量，则读取数据的时候会从转化成汉明重量
-    url_trace = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/tutorials/courses/sca101/example_aes/"
-    url_data = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/tutorials/courses/sca101/example_aes/"
+    url_trace = r"F:/another_CPU/5mhz_filter_16bit/"
+    url_data = r"F:/another_CPU/5mhz_filter_16bit/"
+
+    # url_trace = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/tutorials/courses/sca101/example_aes/"
+    # url_data = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/tutorials/courses/sca101/example_aes/"
     # url_trace = r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/"
     # url_data =  r"D:/ChipWhisperer5_52/cw/home/portable/chipwhisperer/jupyter/courses/sca101/traces/"
     data_name = "aaadata{0}.txt"
-    data_name = "pico5000_example_aes_inter_part{0}.txt"
+    # data_name = "example_aes_inter_part{0}.txt"
     # data_name = "lab3_3_zhongjianzhi_chaifen{0}.txt"
 
     trace_name = "arrPart{0}.npy"
-    trace_name = "pico5000_example_aes_part{0}.npy"
+    # trace_name = "example_aes_part{0}.npy"
     # trace_name = "lab3_3_traces_chaifen{0}.npy"
-    snr_save_file_name = "pico5000_xiang_guan_xing.npy"
+    snr_save_file_name = "xiang_guan_xing.npy"
 
 
     #运行函数且绘图
     f, ax = plt.subplots(1, 1)
     ax.set_title('hw_cpa_traces')
-    result = big_correlation_func(n, url_trace, trace_name,url_data,data_name)
-    ax.plot(result)
-
-    np.save(url_trace + snr_save_file_name, result)
+    result = big_correlation_func(n, url_trace, trace_name,url_data,data_name, target_hamming)
+    # ax.plot(result)
+    print("暂时不保存了")
+    # np.save(url_trace + snr_save_file_name, result)
     plt.show()
